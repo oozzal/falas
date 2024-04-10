@@ -1,5 +1,5 @@
 use rand::prelude::*;
-use std::fmt;
+use std::{collections::HashSet, fmt};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
@@ -11,15 +11,22 @@ struct Deck {
 #[derive(Debug)]
 struct Hand {
     cards: Vec<Card>,
+    id: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 struct Card {
     face: Face,
     value: Value,
 }
 
-#[derive(EnumIter, Debug, Copy, Clone)]
+impl Card {
+    fn rank(&self) -> u8 {
+        self.value.rank()
+    }
+}
+
+#[derive(EnumIter, Hash, PartialEq, Eq, Debug, Copy, Clone)]
 enum Face {
     Vote,
     Chidi,
@@ -27,7 +34,7 @@ enum Face {
     Ita,
 }
 
-#[derive(EnumIter, Debug, Copy, Clone)]
+#[derive(EnumIter, Hash, PartialEq, Eq, Debug, Copy, Clone)]
 enum Value {
     Dukki = 2,
     Tikki = 3,
@@ -79,15 +86,96 @@ impl fmt::Display for Face {
     }
 }
 
+#[derive(Debug, PartialEq)]
+enum Output {
+    Badi = 1,
+    Joot = 2,
+    Color = 3,
+    Run = 4,
+    DoubleRun = 5,
+    Trial = 6,
+}
+
+impl Output {
+    fn rank(self) -> u8 {
+        self as u8
+    }
+}
+
 impl Hand {
-    fn display(mut self) {
+    fn display(&self) {
+        for card in &self.cards {
+            print!("{}, ", card);
+        }
+        println!("\n#{} {:?}", self.id, self.identify())
+    }
+
+    fn sort(&mut self) -> &mut Self {
         self.cards
             .sort_by(|a, b| a.value.rank().cmp(&b.value.rank()));
-        for card in self.cards {
-            print!("{}, ", card)
-        }
-        println!()
+        self
     }
+
+    fn identify(&self) -> Output {
+        let mut output = Output::Badi;
+        let faces = self
+            .cards
+            .iter()
+            .map(|card| card.face)
+            .collect::<HashSet<_>>();
+        if faces.len() == 1 {
+            output = Output::Color;
+        }
+        let mut values: Vec<u8> = self
+            .cards
+            .iter()
+            .map(|card| card.value.rank())
+            .collect::<HashSet<_>>()
+            .into_iter()
+            .collect();
+        values.sort();
+        if values.len() == 2 {
+            output = Output::Joot;
+        }
+        if values.len() == 1 {
+            output = Output::Trial;
+        }
+        if values.len() == 3 && (values[2] - values[0] == 2 || values[2] - values[1] == 11) {
+            if output == Output::Color {
+                output = Output::DoubleRun;
+            } else {
+                output = Output::Run;
+            }
+        }
+        output
+    }
+
+    fn compare(&self, other: &Hand) -> Compare {
+        let self_rank = self.identify().rank();
+        let other_rank = other.identify().rank();
+        if self_rank > other_rank {
+            return Compare::Greater;
+        } else if other_rank > self_rank {
+            return Compare::Less;
+        }
+        for i in (0..3).rev() {
+            let self_rank = self.cards[i].rank();
+            let other_rank = other.cards[i].rank();
+            if self_rank > other_rank {
+                return Compare::Greater;
+            } else if other_rank > self_rank {
+                return Compare::Less;
+            }
+        }
+        Compare::Equal
+    }
+}
+
+#[derive(Debug, PartialEq)]
+enum Compare {
+    Less,
+    Equal,
+    Greater,
 }
 
 impl Deck {
@@ -114,23 +202,147 @@ impl Deck {
             return Err("Maximum players reached");
         }
         let mut hands: Vec<Hand> = Vec::with_capacity(count);
-        for _ in 0..count {
+        for i in 0..count {
             let mut hand = Hand {
                 cards: Vec::with_capacity(3),
+                id: i,
             };
             for _ in 0..3 {
                 hand.cards.push(self.cards.pop().unwrap());
             }
+            hand.sort();
             hands.push(hand);
         }
         Ok(hands)
     }
 }
 
+struct Game {
+    hands: Vec<Hand>,
+    total_players: usize,
+}
+
+impl Game {
+    fn new(total_players: usize) -> Self {
+        Game {
+            total_players,
+            hands: Vec::with_capacity(total_players),
+        }
+    }
+
+    fn deal(&mut self) {
+        let mut deck = Deck::new();
+        self.hands = deck.deal(self.total_players).unwrap();
+    }
+
+    fn display(&self) {
+        for hand in &self.hands {
+            hand.display();
+        }
+    }
+
+    fn show<'a>(&'a self, hand: &'a Hand) -> &'a Hand {
+        let mut winner = hand;
+        for i in 0..self.total_players {
+            let challenger = &self.hands[i];
+            if hand.id == challenger.id {
+                continue;
+            }
+            let result = challenger.compare(winner);
+            if result == Compare::Greater || result == Compare::Equal {
+                winner = challenger;
+            }
+        }
+        winner
+    }
+}
+
 fn main() {
-    let mut deck = Deck::new();
-    let hands = deck.deal(3).unwrap();
-    for hand in hands {
-        hand.display()
+    let mut game = Game::new(3);
+    game.deal();
+    let winner: &Hand = game.show(&game.hands[0]);
+    game.display();
+    println!("\nWINNER IS:");
+    winner.display();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_selects_winner() {
+        let ekka = Card {
+            face: Face::Vote,
+            value: Value::Ekka,
+        };
+        let dukki = Card {
+            face: Face::Vote,
+            value: Value::Dukki,
+        };
+        let tikki = Card {
+            face: Face::Vote,
+            value: Value::Tikki,
+        };
+        let hand1 = Hand {
+            id: 1,
+            cards: vec![ekka, dukki, tikki],
+        };
+        let ekka = Card {
+            face: Face::Vote,
+            value: Value::Ekka,
+        };
+        let dukki = Card {
+            face: Face::Vote,
+            value: Value::Dukki,
+        };
+        let tikki = Card {
+            face: Face::Vote,
+            value: Value::Tikki,
+        };
+        let hand2 = Hand {
+            id: 2,
+            cards: vec![ekka, dukki, tikki],
+        };
+        let game = Game {
+            total_players: 2,
+            hands: vec![hand1, hand2],
+        };
+        let winner = game.show(&game.hands[0]);
+        assert_eq!(winner.id, game.hands[1].id);
+        let winner = game.show(&game.hands[1]);
+        assert_eq!(winner.id, game.hands[0].id);
+    }
+
+    #[test]
+    fn it_identifies_run() {
+        let ekka = Card {
+            face: Face::Vote,
+            value: Value::Ekka,
+        };
+        let dukki = Card {
+            face: Face::Vote,
+            value: Value::Dukki,
+        };
+        let tikki = Card {
+            face: Face::Pane,
+            value: Value::Tikki,
+        };
+        let chauka = Card {
+            face: Face::Pane,
+            value: Value::Chauka,
+        };
+        let hand_cards = vec![ekka, dukki, tikki];
+        let hand = Hand {
+            cards: hand_cards,
+            id: 1,
+        };
+        assert_eq!(hand.identify() == Output::Run, true);
+        let hand_cards = vec![ekka, dukki, chauka];
+        let hand = Hand {
+            cards: hand_cards,
+            id: 2,
+        };
+        assert_eq!(hand.identify() == Output::Run, false);
     }
 }
