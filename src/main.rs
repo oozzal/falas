@@ -288,18 +288,6 @@ mod tests {
             id: 1,
             cards: vec![ekka, dukki, tikki],
         };
-        let ekka = Card {
-            face: Face::Vote,
-            value: Value::Ekka,
-        };
-        let dukki = Card {
-            face: Face::Vote,
-            value: Value::Dukki,
-        };
-        let tikki = Card {
-            face: Face::Vote,
-            value: Value::Tikki,
-        };
         let hand2 = Hand {
             id: 2,
             cards: vec![ekka, dukki, tikki],
