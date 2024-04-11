@@ -8,12 +8,6 @@ struct Deck {
     cards: Vec<Card>,
 }
 
-#[derive(Debug)]
-struct Hand {
-    cards: Vec<Card>,
-    id: usize,
-}
-
 #[derive(Debug, Clone)]
 struct Card {
     face: Face,
@@ -86,7 +80,7 @@ impl fmt::Display for Face {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 enum Output {
     Badi = 1,
     Joot = 2,
@@ -102,19 +96,34 @@ impl Output {
     }
 }
 
+#[derive(Debug)]
+struct Hand {
+    cards: Vec<Card>,
+    id: usize,
+    identity: Option<Output>,
+}
+
 impl Hand {
+    fn new(id: usize, capacity: usize) -> Self {
+        Hand {
+            id,
+            cards: Vec::with_capacity(capacity),
+            identity: None,
+        }
+    }
+
     fn display(&self) {
         for card in &self.cards {
             print!("{}, ", card);
         }
-        println!("\n#{} {:?}", self.id, self.identify())
+        println!("\n#{} {:?}", self.id, self.identity.unwrap())
     }
 
     fn sort(&mut self) {
         self.cards.sort_by(|a, b| a.rank().cmp(&b.rank()));
     }
 
-    fn identify(&self) -> Output {
+    fn identify(&mut self) {
         let mut output = Output::Badi;
         let faces = self
             .cards
@@ -145,11 +154,11 @@ impl Hand {
                 output = Output::Run;
             }
         }
-        output
+        self.identity = Some(output);
     }
 
     fn rank(&self) -> u8 {
-        self.identify().rank()
+        self.identity.unwrap().rank()
     }
 
     fn compare(&self, other: &Hand) -> Compare {
@@ -205,14 +214,12 @@ impl Deck {
         }
         let mut hands: Vec<Hand> = Vec::with_capacity(count);
         for i in 0..count {
-            let mut hand = Hand {
-                cards: Vec::with_capacity(3),
-                id: i,
-            };
+            let mut hand = Hand::new(i, 3);
             for _ in 0..3 {
                 hand.cards.push(self.cards.pop().unwrap());
             }
             hand.sort();
+            hand.identify();
             hands.push(hand);
         }
         Ok(hands)
@@ -285,14 +292,10 @@ mod tests {
             face: Face::Vote,
             value: Value::Tikki,
         };
-        let hand1 = Hand {
-            id: 1,
-            cards: vec![ekka.clone(), dukki.clone(), tikki.clone()],
-        };
-        let hand2 = Hand {
-            id: 2,
-            cards: vec![ekka, dukki, tikki],
-        };
+        let mut hand1 = Hand::new(1, 3);
+        hand1.cards = vec![ekka.clone(), dukki.clone(), tikki.clone()];
+        let mut hand2 = Hand::new(2, 3);
+        hand2.cards = vec![ekka, dukki, tikki];
         let game = Game {
             total_players: 2,
             hands: vec![hand1, hand2],
@@ -321,17 +324,13 @@ mod tests {
             face: Face::Pane,
             value: Value::Chauka,
         };
-        let hand_cards = vec![ekka.clone(), dukki.clone(), tikki];
-        let hand = Hand {
-            cards: hand_cards,
-            id: 1,
-        };
-        assert_eq!(hand.identify() == Output::Run, true);
-        let hand_cards = vec![ekka, dukki, chauka];
-        let hand = Hand {
-            cards: hand_cards,
-            id: 2,
-        };
-        assert_eq!(hand.identify() == Output::Run, false);
+        let mut hand = Hand::new(1, 3);
+        hand.cards = vec![ekka.clone(), dukki.clone(), tikki];
+        hand.identify();
+        assert_eq!(hand.identity.unwrap() == Output::Run, true);
+        let mut hand = Hand::new(2, 3);
+        hand.cards = vec![ekka, dukki, chauka];
+        hand.identify();
+        assert_eq!(hand.identity.unwrap() == Output::Run, false);
     }
 }
