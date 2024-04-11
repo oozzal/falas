@@ -14,7 +14,7 @@ struct Hand {
     id: usize,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 struct Card {
     face: Face,
     value: Value,
@@ -52,8 +52,8 @@ enum Value {
 }
 
 impl Value {
-    fn rank(self) -> u8 {
-        self as u8
+    fn rank(&self) -> u8 {
+        *self as u8
     }
 }
 
@@ -110,10 +110,8 @@ impl Hand {
         println!("\n#{} {:?}", self.id, self.identify())
     }
 
-    fn sort(&mut self) -> &mut Self {
-        self.cards
-            .sort_by(|a, b| a.value.rank().cmp(&b.value.rank()));
-        self
+    fn sort(&mut self) {
+        self.cards.sort_by(|a, b| a.rank().cmp(&b.rank()));
     }
 
     fn identify(&self) -> Output {
@@ -121,15 +119,15 @@ impl Hand {
         let faces = self
             .cards
             .iter()
-            .map(|card| card.face)
-            .collect::<HashSet<_>>();
+            .map(|card| &card.face)
+            .collect::<HashSet<&Face>>();
         if faces.len() == 1 {
             output = Output::Color;
         }
         let mut values: Vec<u8> = self
             .cards
             .iter()
-            .map(|card| card.value.rank())
+            .map(|card| card.rank())
             .collect::<HashSet<_>>()
             .into_iter()
             .collect();
@@ -150,9 +148,13 @@ impl Hand {
         output
     }
 
+    fn rank(&self) -> u8 {
+        self.identify().rank()
+    }
+
     fn compare(&self, other: &Hand) -> Compare {
-        let self_rank = self.identify().rank();
-        let other_rank = other.identify().rank();
+        let self_rank = self.rank();
+        let other_rank = other.rank();
         if self_rank > other_rank {
             return Compare::Greater;
         } else if other_rank > self_rank {
@@ -231,8 +233,7 @@ impl Game {
     }
 
     fn deal(&mut self) {
-        let mut deck = Deck::new();
-        self.hands = deck.deal(self.total_players).unwrap();
+        self.hands = Deck::new().deal(self.total_players).unwrap();
     }
 
     fn display(&self) {
@@ -286,7 +287,7 @@ mod tests {
         };
         let hand1 = Hand {
             id: 1,
-            cards: vec![ekka, dukki, tikki],
+            cards: vec![ekka.clone(), dukki.clone(), tikki.clone()],
         };
         let hand2 = Hand {
             id: 2,
@@ -320,7 +321,7 @@ mod tests {
             face: Face::Pane,
             value: Value::Chauka,
         };
-        let hand_cards = vec![ekka, dukki, tikki];
+        let hand_cards = vec![ekka.clone(), dukki.clone(), tikki];
         let hand = Hand {
             cards: hand_cards,
             id: 1,
