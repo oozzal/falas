@@ -72,10 +72,10 @@ impl fmt::Display for Value {
 impl fmt::Display for Face {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Face::Vote => write!(f, "♠"),
-            Face::Chidi => write!(f, "♣"),
-            Face::Pane => write!(f, "♥"),
-            Face::Ita => write!(f, "♦"),
+            Face::Vote => write!(f, "♠️"),
+            Face::Chidi => write!(f, "♣️"),
+            Face::Pane => write!(f, "❤️️"),
+            Face::Ita => write!(f, "♦️"),
         }
     }
 }
