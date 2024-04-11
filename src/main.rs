@@ -113,10 +113,11 @@ impl Hand {
     }
 
     fn display(&self) {
+        print!("#{} {:?}  ", self.id, self.identity.unwrap());
         for card in &self.cards {
-            print!("{}, ", card);
+            print!("{}  ", card);
         }
-        println!("\n#{} {:?}", self.id, self.identity.unwrap())
+        println!()
     }
 
     fn sort(&mut self) {
