@@ -295,8 +295,10 @@ mod tests {
         };
         let mut hand1 = Hand::new(1, 3);
         hand1.cards = vec![ekka.clone(), dukki.clone(), tikki.clone()];
+        hand1.identify();
         let mut hand2 = Hand::new(2, 3);
         hand2.cards = vec![ekka, dukki, tikki];
+        hand2.identify();
         let game = Game {
             total_players: 2,
             hands: vec![hand1, hand2],
