@@ -72,10 +72,10 @@ mod tests {
         let mut hand = Hand::new(1, 3);
         hand.cards = vec![ekka.clone(), dukki.clone(), tikki];
         hand.identify();
-        assert_eq!(hand.identity.unwrap() == Output::Run, true);
+        assert_eq!(hand.identity.unwrap(), Output::Run);
         let mut hand = Hand::new(2, 3);
-        hand.cards = vec![ekka, dukki, chauka];
+        hand.cards = vec![ekka, dukki.clone(), dukki.clone()];
         hand.identify();
-        assert_eq!(hand.identity.unwrap() == Output::Run, false);
+        assert_ne!(hand.identity.unwrap(), Output::Run);
     }
 }
