@@ -65,10 +65,6 @@ mod tests {
             face: Face::Pane,
             value: Value::Tikki,
         };
-        let chauka = Card {
-            face: Face::Pane,
-            value: Value::Chauka,
-        };
         let mut hand = Hand::new(1, 3);
         hand.cards = vec![ekka.clone(), dukki.clone(), tikki];
         hand.identify();

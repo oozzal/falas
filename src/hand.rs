@@ -85,21 +85,21 @@ impl Hand {
     }
 
     pub fn compare(&self, other: &Hand) -> Ordering {
-        let self_rank = self.rank();
         let other_rank = other.rank();
-        if self_rank > other_rank {
-            return Ordering::Greater;
-        } else if other_rank > self_rank {
-            return Ordering::Less;
-        }
-        for i in (0..3).rev() {
-            let self_rank = self.cards[i].rank();
-            let other_rank = other.cards[i].rank();
-            if self_rank > other_rank {
-                return Ordering::Greater;
-            } else if other_rank > self_rank {
-                return Ordering::Less;
+        let self_rank = self.rank();
+        match self_rank.cmp(&other_rank) {
+            Ordering::Equal => {
+                for i in (0..3).rev() {
+                    let self_rank = self.cards[i].rank();
+                    let other_rank = other.cards[i].rank();
+                    match self_rank.cmp(&other_rank) {
+                        Ordering::Equal => continue,
+                        ordering => return ordering,
+                    }
+                }
             }
+            // greater and less
+            ordering => return ordering,
         }
         Ordering::Equal
     }
